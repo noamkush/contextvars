@@ -1,5 +1,6 @@
 import collections.abc
 import threading
+from typing import TypeVar, Generic, GenericMeta
 
 import immutables
 
@@ -8,6 +9,7 @@ __all__ = ('ContextVar', 'Context', 'Token', 'copy_context')
 
 
 _NO_DEFAULT = object()
+T = TypeVar('T')
 
 
 class ContextMeta(type(collections.abc.Mapping)):
@@ -64,7 +66,7 @@ class Context(collections.abc.Mapping, metaclass=ContextMeta):
         return iter(self._data)
 
 
-class ContextVarMeta(type):
+class ContextVarMeta(GenericMeta):
 
     # contextvars.ContextVar is not subclassable.
 
@@ -78,9 +80,9 @@ class ContextVarMeta(type):
         return
 
 
-class ContextVar(metaclass=ContextVarMeta):
+class ContextVar(Generic[T], metaclass=ContextVarMeta):
 
-    def __init__(self, name, *, default=_NO_DEFAULT):
+    def __init__(self, name, *, default: T = _NO_DEFAULT):
         if not isinstance(name, str):
             raise TypeError("context variable name must be a str")
         self._name = name
@@ -90,7 +92,7 @@ class ContextVar(metaclass=ContextVarMeta):
     def name(self):
         return self._name
 
-    def get(self, default=_NO_DEFAULT):
+    def get(self, default: T = _NO_DEFAULT) -> T:
         ctx = _get_context()
         try:
             return ctx[self]
@@ -105,7 +107,7 @@ class ContextVar(metaclass=ContextVarMeta):
 
         raise LookupError
 
-    def set(self, value):
+    def set(self, value: T):
         ctx = _get_context()
         data = ctx._data
         try:
